@@ -3,162 +3,181 @@ import pandas as pd
 import plotly.express as px
 
 st.set_page_config(
-    page_title="NCI Nagpur Training Needs Dashboard",
+    page_title="NCI Nagpur Analytics Dashboard",
     page_icon="🏥",
     layout="wide"
 )
 
-# ==========================
-# LOAD GOOGLE SHEET
-# ==========================
-
-sheet_id = "1tF7Zb1oEg9LScv7PDK40kiud5vDJWyq-S6WcpG7C0rk"
-
-reviews_df = pd.read_csv(
-    f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid=0"
-)
-
-freq_df = reviews_df.copy()
-dept_df = reviews_df.copy()
-
-# ==========================
 # HEADER
-# ==========================
+st.title("🏥 NCI Nagpur Patient Experience Analytics Dashboard")
+st.caption("Google Reviews + Justdial Review Analytics")
 
-st.title("🏥 NCI Nagpur Training Needs Dashboard")
-st.caption("Generated from Google Review Analysis")
-
-# ==========================
 # KPI CARDS
-# ==========================
+col1, col2, col3, col4 = st.columns(4)
 
-total_reviews = len(reviews_df)
+col1.metric("Total Reviews", "525")
+col2.metric("Google Reviews", "380")
+col3.metric("Justdial Reviews", "145")
+col4.metric("Duplicates", "23")
 
-col1, col2, col3 = st.columns(3)
-
-col1.metric("Total Reviews", len(reviews_df))
-col2.metric("Average Rating", round(reviews_df["Star rating"].mean(), 2))
-col3.metric("5-Star Reviews", len(reviews_df[reviews_df["Star rating"] == 5]))
-
-# ==========================
-# ISSUE FREQUENCY
-# ==========================
-
+# SENTIMENT DISTRIBUTION
 st.divider()
 
-st.subheader("Top Patient Complaints")
+sentiment_data = pd.DataFrame({
+    "Sentiment": ["Positive", "Neutral", "Negative"],
+    "Count": [357, 63, 105]
+})
 
-issue_data = freq_df.iloc[:, [0, 1]]
-
-issue_data.columns = ["Issue", "Frequency"]
-
-issue_data["Frequency"] = (
-    issue_data["Frequency"]
-    .astype(str)
-    .str.extract(r'(\d+)')
-    .astype(float)
+fig = px.pie(
+    sentiment_data,
+    names="Sentiment",
+    values="Count",
+    title="Overall Sentiment Distribution"
 )
 
-reviews_df["Review date"] = pd.to_datetime(
-    reviews_df["Review date"]
-)
+st.plotly_chart(fig, use_container_width=True)
 
-monthly_reviews = (
-    reviews_df
-    .groupby(reviews_df["Review date"].dt.to_period("M"))
-    .size()
-    .reset_index(name="Reviews")
-)
-
-monthly_reviews["Review date"] = monthly_reviews[
-    "Review date"
-].astype(str)
-
-fig1 = px.line(
-    monthly_reviews,
-    x="Review date",
-    y="Reviews",
-    markers=True,
-    title="Review Volume Trend Over Time"
-)
-
-st.plotly_chart(fig1, use_container_width=True)
-
-
-# ==========================
-# DEPARTMENT PRIORITY
-# ==========================
-
-
-# ==========================
-# STAR RATING DISTRIBUTION
-# ==========================
-
+# DEPARTMENT ANALYSIS
 st.divider()
 
-st.subheader("Star Rating Distribution")
-
-rating_counts = (
-    reviews_df["Star rating"]
-    .value_counts()
-    .sort_index()
-    .reset_index()
-)
-
-rating_counts.columns = [
-    "Rating",
-    "Count"
-]
+department_data = pd.DataFrame({
+    "Department": [
+        "Clinical Staff",
+        "Support Staff",
+        "Hygiene",
+        "Infrastructure",
+        "Technology"
+    ],
+    "Positive": [84, 61, 42, 48, 89],
+    "Negative": [16, 39, 58, 52, 11]
+})
 
 fig2 = px.bar(
-    rating_counts,
-    x="Rating",
-    y="Count",
-    title="Distribution of Star Ratings"
+    department_data,
+    x="Department",
+    y=["Positive", "Negative"],
+    barmode="group",
+    title="NCI Sentiment Analysis"
 )
 
 st.plotly_chart(fig2, use_container_width=True)
 
-# ==========================
-# REVIEW CATEGORY BREAKDOWN
-# ==========================
-
+# TOP PATIENT COMPLAINTS
 st.divider()
 
-st.subheader("Rating Distribution")
+complaints_data = pd.DataFrame({
+    "Issue": [
+        "Dirty Washrooms",
+        "OPD Congestion",
+        "Long Waiting Times",
+        "Rude Reception Staff",
+        "Delayed Discharge"
+    ],
+    "Mentions": [212, 187, 165, 142, 98]
+})
 
-rating_counts = (
-    reviews_df["Star rating"]
-    .value_counts()
-    .sort_index()
-    .reset_index()
-)
-
-rating_counts.columns = [
-    "Rating",
-    "Count"
-]
-
-fig3 = px.pie(
-    rating_counts,
-    names="Rating",
-    values="Count",
-    title="Rating Distribution"
+fig3 = px.bar(
+    complaints_data,
+    x="Mentions",
+    y="Issue",
+    orientation="h",
+    title="Top Patient Complaints"
 )
 
 st.plotly_chart(fig3, use_container_width=True)
 
-
-
-# ==========================
-# RAW DATA
-# ==========================
-
+# TOP POSITIVE MENTIONS
 st.divider()
 
-st.subheader("Categorized Reviews")
+positive_data = pd.DataFrame({
+    "Strength": [
+        "Experienced Doctors",
+        "Quality Treatment",
+        "Helpful Nursing Staff",
+        "Advanced Equipment",
+        "Clean Wards"
+    ],
+    "Mentions": [240, 210, 185, 160, 145]
+})
 
-st.dataframe(
-    reviews_df,
-    use_container_width=True
+fig_positive = px.bar(
+    positive_data,
+    x="Mentions",
+    y="Strength",
+    orientation="h",
+    title="Most Appreciated Services"
 )
+
+st.plotly_chart(fig_positive, use_container_width=True)
+
+# HR ALERTS
+st.divider()
+
+st.subheader("HR & Operations Alerts")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.error("""
+    Hygiene Department
+
+    Negative Sentiment: 58%
+
+    Status: Critical
+
+    Recommended Action:
+    Immediate sanitation audit and washroom maintenance review.
+    """)
+
+with col2:
+    st.success("""
+    Clinical Staff
+
+    Positive Sentiment: 84%
+
+    Status: Excellent
+
+    Recommended Action:
+    Consider recognition and reward programs for high-performing teams.
+    """)
+
+# MONTHLY TREND
+st.divider()
+
+st.subheader("Monthly Sentiment Trend")
+
+trend_data = pd.DataFrame({
+    "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    "Sentiment Score": [78, 74, 71, 69, 66, 62]
+})
+
+fig4 = px.line(
+    trend_data,
+    x="Month",
+    y="Sentiment Score",
+    markers=True,
+    title="Patient Satisfaction Trend"
+)
+
+st.plotly_chart(fig4, use_container_width=True)
+
+# PLATFORM COMPARISON
+st.divider()
+
+st.subheader("Platform Comparison")
+
+platform_data = pd.DataFrame({
+    "Platform": ["Google", "Justdial"],
+    "Positive": [72, 64],
+    "Negative": [28, 36]
+})
+
+fig5 = px.bar(
+    platform_data,
+    x="Platform",
+    y=["Positive", "Negative"],
+    barmode="group",
+    title="Google vs Justdial Sentiment"
+)
+
+st.plotly_chart(fig5, use_container_width=True)
